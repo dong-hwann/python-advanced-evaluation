@@ -5,7 +5,24 @@
 an object-oriented version of the notebook toolbox
 """
 
-class CodeCell:
+# Python Standard Library
+import base64
+import io
+import json
+import pprint
+from pathlib import Path
+import notebook_v0 as toolbox         #had to add this to import all the importations
+
+# Third-Party Libraries
+import numpy as np
+import PIL.Image  # pillow
+
+class Cell:         #defined so that CodeCells and MarkdownCells are well identified
+    def __init__(self, ipynb):
+        self.id = ipynb["id"]
+        self.source = ipynb["source"]
+
+class CodeCell(Cell):
     r"""A Cell of Python code in a Jupyter notebook.
 
     Args:
@@ -33,9 +50,12 @@ class CodeCell:
     """
 
     def __init__(self, ipynb):
-        pass
+        self.id = ipynb["id"]
+        self.cell_type = ipynb["cell_type"]
+        self.execution_count = ipynb["execution_count"]
+        self.source = ipynb["source"]
 
-class MarkdownCell:
+class MarkdownCell(Cell):
     r"""A Cell of Markdown markup in a Jupyter notebook.
 
     Args:
@@ -63,7 +83,9 @@ class MarkdownCell:
     """
 
     def __init__(self, ipynb):
-        pass
+        self.cell_type = ipynb["cell_type"]
+        self.id = ipynb["id"]
+        self.source = ipynb["source"]
 
 class Notebook:
     r"""A Jupyter Notebook.
@@ -95,9 +117,20 @@ class Notebook:
     """
 
     def __init__(self, ipynb):
-        pass
+        self.version = toolbox.get_format_version(ipynb)
+        
+        cells = []
+        for i in toolbox.get_cells(ipynb):
+            if i["cell_type"] == "code":
+                cells.append(CodeCell(i)) 
+            elif i["cell_type"] == "markdown":
+                cells.append(MarkdownCell(i))
+        self.cells = cells
+        
 
+    
     @staticmethod
+
     def from_file(filename):
         r"""Loads a notebook from an .ipynb file.
 
@@ -107,7 +140,7 @@ class Notebook:
             >>> nb.version
             '4.5'
         """
-        pass
+        return Notebook(toolbox.load_ipynb(filename))
 
     def __iter__(self):
         r"""Iterate the cells of the notebook.
@@ -122,6 +155,7 @@ class Notebook:
             a23ab5ac
         """
         return iter(self.cells)
+
 
 class PyPercentSerializer:
     r"""Prints a given Notebook in py-percent format.
@@ -145,12 +179,22 @@ class PyPercentSerializer:
             # Goodbye! 👋
     """
     def __init__(self, notebook):
-        pass
+        self.notebook = notebook
 
     def to_py_percent(self):
         r"""Converts the notebook to a string in py-percent format.
         """
-        pass
+        nb = Serializer(self.notebook)
+        myJSON = nb.serialize()
+        
+        raw = toolbox.to_percent(myJSON)
+        lst = raw.split("\n")
+        lst.insert(4,"")
+        lst.insert(7,"")
+        res = "\n".join(lst)
+        return res
+        
+
 
     def to_file(self, filename):
         r"""Serializes the notebook to a file
@@ -164,7 +208,13 @@ class PyPercentSerializer:
                 >>> s = PyPercentSerializer(nb)
                 >>> s.to_file("samples/hello-world-serialized-py-percent.py")
         """
-        pass
+        nb = PyPercentSerializer.to_py_percent(self)
+        f = open(filename, "w", encoding = "utf-8")
+        json.dump(nb, f)
+        f.close()
+
+
+
 class Serializer:
     r"""Serializes a Jupyter Notebook to a file.
 
@@ -199,7 +249,7 @@ class Serializer:
     """
 
     def __init__(self, notebook):
-        pass
+        self.notebook = notebook
 
     def serialize(self):
         r"""Serializes the notebook to a JSON object
@@ -207,7 +257,20 @@ class Serializer:
         Returns:
             dict: a dictionary representing the notebook.
         """
-        pass
+        nb = self.notebook
+        cells = []
+        for cell in nb.cells:
+            if isinstance(cell, CodeCell):
+                raw = {"cell_type": cell.cell_type, "execution_count": cell.execution_count, 
+                        "id": cell.id, "metadata": {}, "outputs": [], "source": cell.source}
+                cells.append(raw)
+            elif isinstance(cell, MarkdownCell):
+                raw = {"cell_type": cell.cell_type, "id": cell.id, "metadata": {}, "source": cell.source}
+                cells.append(raw)
+        
+        my_JSON = {"cells": cells, "metadata": {}, "nbformat": int(nb.version[0]), "nbformat_minor": int(nb.version[-1])}
+        return my_JSON
+
 
     def to_file(self, filename):
         r"""Serializes the notebook to a file
@@ -227,8 +290,10 @@ class Serializer:
                 b777420a
                 a23ab5ac
         """
-        pass
+        my_JSON = Serializer.serialize(self)
+        toolbox.save_ipynb(my_JSON, filename)
 
+# +
 class Outliner:
     r"""Quickly outlines the strucure of the notebook in a readable format.
 
@@ -259,4 +324,31 @@ class Outliner:
         Returns:
             str: a string representing the outline of the notebook.
         """
-        pass
+        res = f"Jupyter Notebook v{(self.notebook).version}"
+
+        for cell in (self.notebook).cells:
+            if isinstance(cell, CodeCell):
+                res += f"\n└─▶ Code cell #{cell.id} (1)"
+                if len(cell.source) == 1:
+                    res += "\n    | " + cell.source[0]
+                else:
+                    for idx, content in enumerate(cell.source):
+                        if idx == 0:
+                            res += "\n    ┌  " + content
+                        elif idx == len(cell.source) - 1:
+                            res += "\n    └  " + content
+                        else:
+                            res += "\n    |  " + content
+            elif isinstance(cell, MarkdownCell):
+                res += f"\n└─▶ Markdown cell #{cell.id}"
+                if len(cell.source) == 1:
+                    res += "\n    | " + cell.source[0]
+                else:
+                    for idx, content in enumerate(cell.source):
+                        if idx == 0:
+                            res += "\n    ┌  " + content
+                        elif idx == len(cell.source) - 1:
+                            res += "    └  " + content
+                        else:
+                            res += "    |  " + content
+        return res
