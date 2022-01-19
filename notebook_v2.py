@@ -7,7 +7,7 @@ from notebook_v1 import Serializer, PyPercentSerializer, Outliner
 """
 an object-oriented version of the notebook toolbox
 """
-class Cell:         #defined so that CodeCells and MarkdownCells are well identified
+class Cell:        
     def __init__(self, id, source):
         self.id = id
         self.source = source
@@ -37,7 +37,7 @@ class CodeCell(Cell):
         ['print("Hello world!")']
     """
     def __init__(self, id, source, execution_count):
-        super().__init__(id, source)
+        super().__init__(id, source)        # On hérite des propriétés de la classe parent
         self.execution_count = execution_count
 
 class MarkdownCell(Cell):
@@ -176,8 +176,8 @@ class Markdownizer:
         for cell in nb:
             if isinstance(cell, CodeCell):
                 raw = cell.source
-                raw.append ("'''")
-                raw.insert(0, "'''python")
+                raw.append ("'''")           # à la fin de la liste 
+                raw.insert(0, "'''python")   # au début de la liste
                 res.append(MarkdownCell(cell.id, raw))
             elif isinstance(cell, MarkdownCell):
                 res.append(cell)
@@ -211,7 +211,7 @@ class MarkdownLesser:
 
         res = []
         for cell in nb:
-            if isinstance(cell, CodeCell):
+            if isinstance(cell, CodeCell):     # On ne garde que les cellues de la classe CodeCell
                 res.append(cell)
             elif isinstance(cell, MarkdownCell):
                 pass

@@ -185,7 +185,7 @@ def to_percent(ipynb):
     res = "# %% [markdown] \n"
     for cell in ipynb["cells"]:
         if cell["cell_type"] == "markdown":
-            if res == "# %% [markdown] \n":
+            if res == "# %% [markdown] \n":   # on voit si l'introduction pour markdown est là
                 res += "# " + "# ".join(cell["source"])
             else:
                 res += "\n# %% [markdown]\n"
@@ -382,6 +382,7 @@ def get_exceptions(ipynb):
         TypeError("unsupported operand type(s) for +: 'int' and 'str'")
         Warning('🌧️  light rain')
     """
+    
     cells = get_cells(ipynb)
     errors = []
     for cell in cells:
@@ -422,7 +423,7 @@ def get_images(ipynb):
     for cell in get_cells(ipynb):
         if cell["cell_type"] == "code":
             for i in cell["outputs"]:
-                raw = i['data'].get("image/png") #so that we will not encounter the problem for calling those which are alr in numpy array
+                raw = i['data'].get("image/png") # pour qu'on n'appelle pas ceux qui sont déjà en numpy array
                 if raw is not None:
                     img = PIL.Image.open(io.BytesIO(base64.b64decode(raw)))
                     lst.append(np.array(img))           

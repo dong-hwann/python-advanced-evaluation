@@ -11,13 +11,13 @@ import io
 import json
 import pprint
 from pathlib import Path
-import notebook_v0 as toolbox         #had to add this to import all the importations
+import notebook_v0 as toolbox         # pour accéder aux fonctions déjà définies dans notebook v0
 
 # Third-Party Libraries
 import numpy as np
 import PIL.Image  # pillow
 
-class Cell:         #defined so that CodeCells and MarkdownCells are well identified
+class Cell:         # On a été obligé de créer cette classe car le test voit si CodeCell et MarkdownCell sont chacun un type de Cell
     def __init__(self, ipynb):
         self.id = ipynb["id"]
         self.source = ipynb["source"]
@@ -188,10 +188,10 @@ class PyPercentSerializer:
         myJSON = nb.serialize()
         
         raw = toolbox.to_percent(myJSON)
-        lst = raw.split("\n")
+        lst = raw.split("\n")    # On divise les lignes et ajoute le BLANKLINE
         lst.insert(4,"")
         lst.insert(7,"")
-        res = "\n".join(lst)
+        res = "\n".join(lst)     # On change la liste en str
         return res
         
 
